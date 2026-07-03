@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Part Identifier</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #0f1117;
+      --surface:  #1a1d27;
+      --border:   #2a2d3a;
+      --accent:   #6c63ff;
+      --accent2:  #4ecca3;
+      --text:     #e8eaf0;
+      --muted:    #6b7280;
+      --danger:   #ef4444;
+      --success:  #22c55e;
+      --warn:     #f59e0b;
+      --radius:   12px;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', system-ui, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 32px 16px;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 36px;
+    }
+    header h1 { font-size: 1.8rem; font-weight: 700; letter-spacing: -0.5px; }
+    header h1 span { color: var(--accent); }
+    header p  { color: var(--muted); margin-top: 6px; font-size: 0.9rem; }
+
+    .tabs {
+      display: flex;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 4px;
+      margin-bottom: 24px;
+      gap: 4px;
+    }
+    .tab {
+      flex: 1;
+      padding: 10px 28px;
+      border: none;
+      border-radius: 9px;
+      background: transparent;
+      color: var(--muted);
+      font-size: 0.9rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .tab.active {
+      background: var(--accent);
+      color: #fff;
+    }
+
+    .panel {
+      display: none;
+      width: 100%;
+      max-width: 600px;
+      flex-direction: column;
+      gap: 20px;
+    }
+    .panel.active { display: flex; }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+    }
+
+    label { font-size: 0.82rem; color: var(--muted); display: block; margin-bottom: 6px; }
+
+    input[type="text"] {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      padding: 10px 14px;
+      font-size: 0.95rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    input[type="text"]:focus { border-color: var(--accent); }
+
+    .dropzone {
+      border: 2px dashed var(--border);
+      border-radius: var(--radius);
+      padding: 32px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+      position: relative;
+    }
+    .dropzone:hover, .dropzone.drag-over {
+      border-color: var(--accent);
+      background: rgba(108, 99, 255, 0.05);
+    }
+    .dropzone input[type="file"] {
+      position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+    }
+    .dropzone .icon { font-size: 2rem; margin-bottom: 8px; }
+    .dropzone .hint { color: var(--muted); font-size: 0.85rem; margin-top: 4px; }
+    .dropzone .count {
+      display: inline-block;
+      background: var(--accent);
+      color: white;
+      border-radius: 20px;
+      padding: 2px 10px;
+      font-size: 0.78rem;
+      margin-top: 8px;
+    }
+
+    .previews {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 12px;
+    }
+    .preview-thumb {
+      width: 72px; height: 72px;
+      border-radius: 8px;
+      object-fit: cover;
+      border: 2px solid var(--border);
+    }
+
+    .btn {
+      width: 100%;
+      padding: 13px;
+      border: none;
+      border-radius: 8px;
+      background: var(--accent);
+      color: white;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.1s;
+    }
+    .btn:hover:not(:disabled) { opacity: 0.9; }
+    .btn:active:not(:disabled) { transform: scale(0.98); }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn.danger { background: var(--danger); }
+
+    .alert {
+      border-radius: 8px;
+      padding: 12px 16px;
+      font-size: 0.88rem;
+      display: none;
+    }
+    .alert.success { background: rgba(34,197,94,0.12); border: 1px solid var(--success); color: var(--success); }
+    .alert.error   { background: rgba(239,68,68,0.12);  border: 1px solid var(--danger);  color: var(--danger); }
+    .alert.show { display: block; }
+
+    .result-card {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px;
+      display: none;
+    }
+    .result-card.show { display: block; }
+    .result-card .predicted {
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: var(--accent2);
+      margin-bottom: 4px;
+    }
+    .result-card .confidence { color: var(--muted); font-size: 0.85rem; margin-bottom: 16px; }
+    .result-card .no-match { font-size: 1.1rem; color: var(--warn); font-weight: 600; }
+
+    .top-k { margin-top: 12px; display: flex; flex-direction: column; gap: 8px; }
+    .top-k-row { display: flex; align-items: center; gap: 10px; }
+    .top-k-label { width: 180px; font-size: 0.82rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .top-k-bar-wrap { flex: 1; background: var(--border); border-radius: 4px; height: 6px; }
+    .top-k-bar { height: 6px; border-radius: 4px; background: var(--accent); transition: width 0.5s; }
+    .top-k-bar.best { background: var(--accent2); }
+    .top-k-sim { font-size: 0.78rem; color: var(--muted); width: 42px; text-align: right; }
+
+    .catalog-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .chip {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 5px 12px;
+      font-size: 0.82rem;
+    }
+    .chip button {
+      background: none;
+      border: none;
+      color: var(--danger);
+      cursor: pointer;
+      font-size: 0.9rem;
+      line-height: 1;
+      padding: 0;
+    }
+    .chip button:hover { color: #ff6b6b; }
+
+    .spinner {
+      width: 18px; height: 18px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      display: inline-block;
+      vertical-align: middle;
+      margin-right: 8px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .section-title {
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      margin-bottom: 12px;
+    }
+
+    .query-preview {
+      width: 100%;
+      max-height: 220px;
+      object-fit: contain;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      display: none;
+      margin-top: 12px;
+    }
+    .query-preview.show { display: block; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Part <span>Identifier</span></h1>
+  <p>DINOv2 embedding-based retrieval — no retraining needed</p>
+</header>
+
+<div class="tabs">
+  <button class="tab active" onclick="switchTab('register')">➕ Register</button>
+  <button class="tab"        onclick="switchTab('identify')">🔍 Identify</button>
+  <button class="tab"        onclick="switchTab('catalog')">📦 Catalog</button>
+</div>
+
+<!-- ── REGISTER ────────────────────────────────────────────────────────── -->
+<div class="panel active" id="panel-register">
+  <div class="card">
+    <div class="section-title">Part Details</div>
+    <label>Part Name / ID</label>
+    <input type="text" id="reg-part-id" placeholder="e.g. ASI10271_BLACK" />
+  </div>
+
+  <div class="card">
+    <div class="section-title">Upload Images (min 3, more = better)</div>
+    <div class="dropzone" id="reg-drop">
+      <input type="file" id="reg-files" accept="image/*" multiple />
+      <div class="icon">🖼️</div>
+      <div>Drop images here or click to browse</div>
+      <div class="hint">JPG / PNG — all angles, lighting conditions</div>
+      <div class="count" id="reg-count" style="display:none"></div>
+    </div>
+    <div class="previews" id="reg-previews"></div>
+  </div>
+
+  <div class="alert" id="reg-alert"></div>
+  <button class="btn" id="reg-btn" onclick="registerPart()" disabled>Register Part</button>
+</div>
+
+<!-- ── IDENTIFY ───────────────────────────────────────────────────────── -->
+<div class="panel" id="panel-identify">
+  <div class="card">
+    <div class="section-title">Upload Query Image</div>
+    <div class="dropzone" id="id-drop">
+      <input type="file" id="id-file" accept="image/*" />
+      <div class="icon">📷</div>
+      <div>Drop image here or click to browse</div>
+      <div class="hint">Single image to identify</div>
+    </div>
+    <img class="query-preview" id="id-preview" />
+  </div>
+
+  <div class="card">
+    <label>Similarity Threshold (lower = more lenient)</label>
+    <input type="text" id="id-threshold" value="0.78" style="width:100px;" />
+  </div>
+
+  <div class="alert" id="id-alert"></div>
+  <button class="btn" id="id-btn" onclick="identifyPart()" disabled>Identify Part</button>
+
+  <div class="result-card" id="id-result">
+    <div class="section-title">Result</div>
+    <div id="id-result-body"></div>
+    <div class="top-k" id="id-topk"></div>
+  </div>
+</div>
+
+<!-- ── CATALOG ────────────────────────────────────────────────────────── -->
+<div class="panel" id="panel-catalog">
+  <div class="card">
+    <div class="section-title">Registered Parts</div>
+    <div class="catalog-list" id="catalog-list">
+      <span style="color:var(--muted);font-size:0.85rem">Loading...</span>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ── TAB SWITCHING ──────────────────────────────────────────────────────
+  function switchTab(name) {
+    document.querySelectorAll('.tab').forEach((t, i) => {
+      t.classList.toggle('active', ['register','identify','catalog'][i] === name);
+    });
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.getElementById(`panel-${name}`).classList.add('active');
+    if (name === 'catalog') loadCatalog();
+  }
+
+  // ── REGISTER ──────────────────────────────────────────────────────────
+  const regFiles = document.getElementById('reg-files');
+  const regDrop  = document.getElementById('reg-drop');
+  let selectedRegFiles = [];
+
+  regFiles.addEventListener('change', () => {
+    selectedRegFiles = Array.from(regFiles.files);
+    updateRegPreviews();
+  });
+
+  regDrop.addEventListener('dragover',  e => { e.preventDefault(); regDrop.classList.add('drag-over'); });
+  regDrop.addEventListener('dragleave', ()  => regDrop.classList.remove('drag-over'));
+  regDrop.addEventListener('drop', e => {
+    e.preventDefault();
+    regDrop.classList.remove('drag-over');
+    selectedRegFiles = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
+    updateRegPreviews();
+  });
+
+  function updateRegPreviews() {
+    const count = document.getElementById('reg-count');
+    const previews = document.getElementById('reg-previews');
+    count.style.display = selectedRegFiles.length ? 'inline-block' : 'none';
+    count.textContent = `${selectedRegFiles.length} image${selectedRegFiles.length !== 1 ? 's' : ''} selected`;
+    previews.innerHTML = '';
+    selectedRegFiles.slice(0, 12).forEach(f => {
+      const img = document.createElement('img');
+      img.className = 'preview-thumb';
+      img.src = URL.createObjectURL(f);
+      previews.appendChild(img);
+    });
+    checkRegReady();
+  }
+
+  document.getElementById('reg-part-id').addEventListener('input', checkRegReady);
+
+  function checkRegReady() {
+    const id   = document.getElementById('reg-part-id').value.trim();
+    const btn  = document.getElementById('reg-btn');
+    btn.disabled = !(id && selectedRegFiles.length >= 3);
+  }
+
+  async function registerPart() {
+    const partId = document.getElementById('reg-part-id').value.trim();
+    const btn    = document.getElementById('reg-btn');
+    const alert  = document.getElementById('reg-alert');
+    alert.className = 'alert';
+
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span>Embedding images...';
+
+    const fd = new FormData();
+    fd.append('part_id', partId);
+    selectedRegFiles.forEach(f => fd.append('images', f));
+
+    try {
+      const res  = await fetch('/api/register', { method: 'POST', body: fd });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || 'Registration failed');
+      alert.className = 'alert success show';
+      alert.textContent = `✅ "${data.part_id}" registered using ${data.images_used} images. Catalog now has ${data.total_parts} parts.`;
+      document.getElementById('reg-part-id').value = '';
+      selectedRegFiles = [];
+      document.getElementById('reg-previews').innerHTML = '';
+      document.getElementById('reg-count').style.display = 'none';
+    } catch (err) {
+      alert.className = 'alert error show';
+      alert.textContent = `❌ ${err.message}`;
+    }
+
+    btn.disabled = false;
+    btn.textContent = 'Register Part';
+    checkRegReady();
+  }
+
+  // ── IDENTIFY ──────────────────────────────────────────────────────────
+  const idFile  = document.getElementById('id-file');
+  const idDrop  = document.getElementById('id-drop');
+  let selectedIdFile = null;
+
+  idFile.addEventListener('change', () => {
+    if (idFile.files[0]) setQueryFile(idFile.files[0]);
+  });
+
+  idDrop.addEventListener('dragover',  e => { e.preventDefault(); idDrop.classList.add('drag-over'); });
+  idDrop.addEventListener('dragleave', ()  => idDrop.classList.remove('drag-over'));
+  idDrop.addEventListener('drop', e => {
+    e.preventDefault();
+    idDrop.classList.remove('drag-over');
+    const f = e.dataTransfer.files[0];
+    if (f && f.type.startsWith('image/')) setQueryFile(f);
+  });
+
+  function setQueryFile(file) {
+    selectedIdFile = file;
+    const preview = document.getElementById('id-preview');
+    preview.src = URL.createObjectURL(file);
+    preview.classList.add('show');
+    document.getElementById('id-btn').disabled = false;
+    document.getElementById('id-result').classList.remove('show');
+  }
+
+  async function identifyPart() {
+    const btn       = document.getElementById('id-btn');
+    const alert     = document.getElementById('id-alert');
+    const result    = document.getElementById('id-result');
+    const threshold = parseFloat(document.getElementById('id-threshold').value) || 0.78;
+    alert.className = 'alert';
+
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span>Identifying...';
+
+    const fd = new FormData();
+    fd.append('image', selectedIdFile);
+    fd.append('threshold', threshold);
+    fd.append('top_k', 5);
+
+    try {
+      const res  = await fetch('/api/identify', { method: 'POST', body: fd });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || 'Identification failed');
+      renderResult(data, threshold);
+      result.classList.add('show');
+    } catch (err) {
+      alert.className = 'alert error show';
+      alert.textContent = `❌ ${err.message}`;
+    }
+
+    btn.disabled = false;
+    btn.textContent = 'Identify Part';
+  }
+
+  function renderResult(data, threshold) {
+    const body = document.getElementById('id-result-body');
+    const topk = document.getElementById('id-topk');
+
+    if (data.predicted) {
+      body.innerHTML = `
+        <div class="predicted">${data.predicted}</div>
+        <div class="confidence">Confidence: ${(data.confidence * 100).toFixed(1)}%</div>
+      `;
+    } else {
+      body.innerHTML = `
+        <div class="no-match">⚠️ No confident match</div>
+        <div class="confidence">Best similarity: ${(data.confidence * 100).toFixed(1)}% (threshold: ${(threshold*100).toFixed(0)}%)</div>
+      `;
+    }
+
+    topk.innerHTML = '<div class="section-title" style="margin-top:8px">Top Matches</div>';
+    const maxSim = data.top_k[0].similarity;
+    data.top_k.forEach((item, i) => {
+      const pct  = ((item.similarity / Math.max(maxSim, 0.01)) * 100).toFixed(1);
+      const best = i === 0;
+      const row  = document.createElement('div');
+      row.className = 'top-k-row';
+      row.innerHTML = `
+        <div class="top-k-label" title="${item.part_id}">${item.part_id}</div>
+        <div class="top-k-bar-wrap">
+          <div class="top-k-bar ${best ? 'best' : ''}" style="width:${pct}%"></div>
+        </div>
+        <div class="top-k-sim">${(item.similarity * 100).toFixed(1)}%</div>
+      `;
+      topk.appendChild(row);
+    });
+  }
+
+  // ── CATALOG ──────────────────────────────────────────────────────────
+  async function loadCatalog() {
+    const list = document.getElementById('catalog-list');
+    list.innerHTML = '<span style="color:var(--muted);font-size:0.85rem">Loading...</span>';
+    try {
+      const res  = await fetch('/api/catalog');
+      const data = await res.json();
+      if (!data.parts.length) {
+        list.innerHTML = '<span style="color:var(--muted);font-size:0.85rem">No parts registered yet.</span>';
+        return;
+      }
+      list.innerHTML = '';
+      data.parts.forEach(part => {
+        const chip = document.createElement('div');
+        chip.className = 'chip';
+        chip.innerHTML = `
+          <span>${part}</span>
+          <button onclick="deletePart('${part}')" title="Remove">✕</button>
+        `;
+        list.appendChild(chip);
+      });
+    } catch {
+      list.innerHTML = '<span style="color:var(--danger)">Failed to load catalog</span>';
+    }
+  }
+
+  async function deletePart(partId) {
+    if (!confirm(`Remove "${partId}" from catalog?`)) return;
+    await fetch(`/api/catalog/${encodeURIComponent(partId)}`, { method: 'DELETE' });
+    loadCatalog();
+  }
+</script>
+</body>
+</html>
